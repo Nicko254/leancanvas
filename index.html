@@ -79,7 +79,7 @@ margin-bottom: 8px;
 color: #374151;
 }
 
-input[type=text], textarea, input[type=email] {
+input[type=text], textarea {
 width: 100%;
 padding: 8px 12px;
 border: 1px solid #d1d5db;
@@ -161,141 +161,6 @@ transition: background-color 0.2s;
 background: #1d4ed8;
 }
 
-/* Access Overlay */
-.access-blur {
-filter: blur(3px);
-pointer-events: none;
-}
-
-/* Signup Overlay */
-.signup-overlay {
-display: none;
-position: fixed;
-top: 0;
-left: 0;
-right: 0;
-z-index: 1000;
-background-color: white;
-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.signup-container {
-max-width: 800px;
-margin: 0 auto;
-padding: 15px 20px;
-display: flex;
-align-items: center;
-justify-content: space-between;
-}
-
-.signup-message {
-font-size: 16px;
-font-weight: 500;
-color: #333;
-}
-
-.signup-message span {
-font-weight: 600;
-}
-
-.signup-form {
-display: flex;
-align-items: center;
-gap: 10px;
-}
-
-.signup-input {
-padding: 8px 12px;
-border: 1px solid #d1d5db;
-border-radius: 6px;
-font-size: 14px;
-width: 250px;
-}
-
-.signup-btn {
-padding: 8px 16px;
-background: #2563eb;
-color: white;
-border: none;
-border-radius: 6px;
-font-weight: 500;
-cursor: pointer;
-white-space: nowrap;
-}
-
-.signup-btn:hover {
-background: #1d4ed8;
-}
-
-.signup-close {
-background: none;
-border: none;
-font-size: 20px;
-color: #6b7280;
-cursor: pointer;
-}
-
-.signup-social {
-display: flex;
-gap: 10px;
-margin-top: 10px;
-}
-
-.social-btn {
-padding: 6px 12px;
-background: white;
-border: 1px solid #d1d5db;
-border-radius: 6px;
-display: flex;
-align-items: center;
-gap: 8px;
-cursor: pointer;
-font-size: 14px;
-}
-
-.social-btn img {
-width: 18px;
-height: 18px;
-}
-
-.error-message {
-color: #ef4444;
-font-size: 13px;
-margin-top: 5px;
-display: none;
-}
-
-.signup-divider {
-display: flex;
-align-items: center;
-margin: 15px 0;
-}
-
-.signup-divider::before,
-.signup-divider::after {
-content: "";
-flex: 1;
-border-bottom: 1px solid #e5e7eb;
-}
-
-.signup-divider-text {
-padding: 0 10px;
-color: #6b7280;
-font-size: 14px;
-}
-
-.privacy-text {
-font-size: 12px;
-color: #6b7280;
-margin-top: 10px;
-text-align: center;
-}
-
-.privacy-text a {
-color: #2563eb;
-text-decoration: none;
-}
-
 @media (max-width: 768px) {
 .canvas-content {
 grid-template-columns: 1fr;
@@ -306,46 +171,20 @@ grid-column: span 1;
 .features-list {
 grid-template-columns: 1fr;
 }
-.signup-container {
-flex-direction: column;
-gap: 15px;
-}
-.signup-form {
-flex-direction: column;
-width: 100%;
-}
-.signup-input {
-width: 100%;
-}
 }
 
 @keyframes slideIn {
-from { transform: translateY(-100%); }
-to { transform: translateY(0); }
+from { transform: translateY(100px); opacity: 0; }
+to { transform: translateY(0); opacity: 1; }
 }
 
-@keyframes fadeIn {
-from { opacity: 0; }
-to { opacity: 1; }
+@keyframes fadeOut {
+from { opacity: 1; }
+to { opacity: 0; }
 }
 </style>
 </head>
 <body>
-<!-- Signup Overlay (Crunchbase style) -->
-<div class="signup-overlay" id="signupOverlay">
-    <div class="signup-container">
-        <div>
-            <div class="signup-message">Join for free to get unlimited access to the <span>Lean Canvas Tool</span></div>
-            <div class="error-message" id="overlayEmailError">Please enter a valid email address</div>
-        </div>
-        <div class="signup-form">
-            <input type="email" class="signup-input" id="overlayEmail" placeholder="Your email address">
-            <button class="signup-btn" id="overlaySignupBtn">Continue with Email</button>
-        </div>
-        <button class="signup-close" id="closeOverlay">×</button>
-    </div>
-</div>
-
 <form id="leanCanvasForm">
 <div class="container" id="canvasContainer">
 <div class="logo-container">
@@ -484,410 +323,271 @@ to { opacity: 1; }
 <script>
 const $ = e => document.querySelector(e);
 
-// Check if user has already signed up
-function isUserSignedUp() {
-    return localStorage.getItem('leanCanvasSignedUp') === 'true';
-}
-
 const init = _ => {
-    // Set up word count limits
-    document.querySelectorAll('textarea').forEach(t => t.addEventListener('input', e => {
-        const words = t.value.trim().split(/\s+/).filter(word => word.length > 0);
-        if (words.length > 100) {
-            t.value = words.slice(0, 100).join(' ');
-        }
-    }));
+// Set up word count limits
+document.querySelectorAll('textarea').forEach(t => t.addEventListener('input', e => {
+const words = t.value.trim().split(/\s+/).filter(word => word.length > 0);
+if (words.length > 100) {
+t.value = words.slice(0, 100).join(' ');
+}
+}));
 
-    // Initialize features
-    setupFeatures();
-    restoreTheme();
-    const themeSelector = $('#themeSelector');
-    if (themeSelector) {
-        themeSelector.addEventListener('change', e => applyTheme(e.target.value));
-    }
-
-    // Handle signup overlay
-    if (!isUserSignedUp()) {
-        // Show the form initially for about 20 seconds
-        setTimeout(() => {
-            if (!isUserSignedUp()) {
-                showSignupOverlay();
-                applyBlur(true);
-            }
-        }, 20000);
-    }
+// Initialize features
+setupFeatures();
+restoreTheme();
+const themeSelector = $('#themeSelector');
+if (themeSelector) {
+themeSelector.addEventListener('change', e => applyTheme(e.target.value));
+}
 };
 
-function showSignupOverlay() {
-    const overlay = $('#signupOverlay');
-    overlay.style.display = 'block';
-    overlay.style.animation = 'slideIn 0.3s forwards';
-    
-    // Set up event listeners
-    $('#overlaySignupBtn').addEventListener('click', handleSignup);
-    $('#closeOverlay').addEventListener('click', () => {
-        overlay.style.display = 'none';
-    });
-    $('#overlayEmail').addEventListener('input', validateEmail);
-}
-
-function applyBlur(shouldBlur) {
-    const container = $('#leanCanvasForm');
-    if (shouldBlur) {
-        container.classList.add('access-blur');
-    } else {
-        container.classList.remove('access-blur');
-    }
-}
-
-function validateEmail() {
-    const email = $('#overlayEmail').value;
-    const errorEl = $('#overlayEmailError');
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    if (!email || emailRegex.test(email)) {
-        errorEl.style.display = 'none';
-        return true;
-    } else {
-        errorEl.style.display = 'block';
-        return false;
-    }
-}
-
-function handleSignup() {
-    if (!validateEmail()) return;
-    
-    const email = $('#overlayEmail').value;
-    
-    if (!email) {
-        $('#overlayEmailError').textContent = 'Email is required';
-        $('#overlayEmailError').style.display = 'block';
-        return;
-    }
-    
-    // Store the email and mark as signed up
-    localStorage.setItem('leanCanvasSignedUp', 'true');
-    localStorage.setItem('userEmail', email);
-    
-    // Here you would typically send the email to your server/CRM
-    // For example: sendEmailToServer(email);
-    
-    // Remove overlay and blur
-    $('#signupOverlay').style.display = 'none';
-    applyBlur(false);
-    
-    // Show a brief thank you message (optional)
-    showThankYouToast();
-}
-
-function showThankYouToast() {
-    // Create a toast notification
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background-color: #10b981;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 1000;
-        animation: fadeIn 0.3s ease-out;
-    `;
-    toast.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            <div>Thank you! Full access granted.</div>
-        </div>
-    `;
-    document.body.appendChild(toast);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.5s ease';
-        setTimeout(() => toast.remove(), 500);
-    }, 3000);
-}
-
-// Function to send email to your server (you'll need to implement this)
-function sendEmailToServer(email) {
-    // Example of how you might send this to your server
-    // fetch('/api/collect-email', {
-    //     method: 'POST',
-    //     headers: {
-    //         'Content-Type': 'application/json',
-    //     },
-    //     body: JSON.stringify({ email }),
-    // })
-    // .then(response => response.json())
-    // .then(data => console.log('Success:', data))
-    // .catch(error => console.error('Error:', error));
-}
-
 const setupFeatures = _ => {
-    const upload = $('#logoUpload'), preview = $('#logoPreview');
+const upload = $('#logoUpload'), preview = $('#logoPreview');
 
-    if (upload && preview) {
-        upload.addEventListener('change', e => {
-            const f = e.target.files[0];
-            if (f) {
-                const r = new FileReader();
-                r.onload = e => {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    localStorage.setItem('logoData', e.target.result);
-                };
-                r.readAsDataURL(f);
-            }
-        });
+if (upload && preview) {
+upload.addEventListener('change', e => {
+const f = e.target.files[0];
+if (f) {
+const r = new FileReader();
+r.onload = e => {
+preview.src = e.target.result;
+preview.style.display = 'block';
+localStorage.setItem('logoData', e.target.result);
+};
+r.readAsDataURL(f);
+}
+});
 
-        // Restore saved logo if exists
-        const savedLogo = localStorage.getItem('logoData');
-        if (savedLogo) {
-            preview.src = savedLogo;
-            preview.style.display = 'block';
-        }
-    }
+// Restore saved logo if exists
+const savedLogo = localStorage.getItem('logoData');
+if (savedLogo) {
+preview.src = savedLogo;
+preview.style.display = 'block';
+}
+}
 };
 
 const applyTheme = c => {
-    document.querySelectorAll('.input-group').forEach(g => g.style.backgroundColor = c);
-    localStorage.setItem('themeColor', c);
+document.querySelectorAll('.input-group').forEach(g => g.style.backgroundColor = c);
+localStorage.setItem('themeColor', c);
 };
 
 const exportAsPDF = () => {
-    // Check if user has signed up
-    if (!isUserSignedUp()) {
-        showSignupOverlay();
-        applyBlur(true);
-        return;
-    }
+// Check if jsPDF is loaded
+if (typeof window.jspdf === 'undefined') {
+const script = document.createElement('script');
+script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+script.onload = createPDF;
+document.head.appendChild(script);
+} else {
+createPDF();
+}
 
-    // Check if jsPDF is loaded
-    if (typeof window.jspdf === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        script.onload = createPDF;
-        document.head.appendChild(script);
-    } else {
-        createPDF();
-    }
+function createPDF() {
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF('p', 'pt', 'a4');
+const margin = 40;
+let y = margin;
 
-    function createPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'pt', 'a4');
-        const margin = 40;
-        let y = margin;
+// Add title and logo if available
+doc.setFontSize(18);
+doc.setFont('helvetica', 'bold');
 
-        // Add title and logo if available
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
+const logoPreview = $('#logoPreview');
+if (logoPreview && logoPreview.style.display !== 'none') {
+try {
+doc.addImage(logoPreview.src, 'JPEG', margin, y, 120, 40, undefined, 'FAST');
+doc.text("Lean Canvas", margin + 140, y + 20);
+} catch (e) {
+console.error("Failed to add logo:", e);
+doc.text("Lean Canvas", margin, y + 20);
+}
+} else {
+doc.text("Lean Canvas", margin, y + 20);
+}
 
-        const logoPreview = $('#logoPreview');
-        if (logoPreview && logoPreview.style.display !== 'none') {
-            try {
-                doc.addImage(logoPreview.src, 'JPEG', margin, y, 120, 40, undefined, 'FAST');
-                doc.text("Lean Canvas", margin + 140, y + 20);
-            } catch (e) {
-                console.error("Failed to add logo:", e);
-                doc.text("Lean Canvas", margin, y + 20);
-            }
-        } else {
-            doc.text("Lean Canvas", margin, y + 20);
-        }
+y += 60;
 
-        y += 60;
+// Add basic info
+const name = $('#name').value;
+const businessName = $('#businessName').value;
 
-        // Add basic info
-        const name = $('#name').value;
-        const businessName = $('#businessName').value;
+doc.setFontSize(12);
+if (name) {
+doc.setFont('helvetica', 'bold');
+doc.text("Name:", margin, y);
+doc.setFont('helvetica', 'normal');
+doc.text(name, margin + 60, y);
+y += 20;
+}
 
-        doc.setFontSize(12);
-        if (name) {
-            doc.setFont('helvetica', 'bold');
-            doc.text("Name:", margin, y);
-            doc.setFont('helvetica', 'normal');
-            doc.text(name, margin + 60, y);
-            y += 20;
-        }
+if (businessName) {
+doc.setFont('helvetica', 'bold');
+doc.text("Business Name:", margin, y);
+doc.setFont('helvetica', 'normal');
+doc.text(businessName, margin + 110, y);
+y += 30;
+}
 
-        if (businessName) {
-            doc.setFont('helvetica', 'bold');
-            doc.text("Business Name:", margin, y);
-            doc.setFont('helvetica', 'normal');
-            doc.text(businessName, margin + 110, y);
-            y += 30;
-        }
+// Add a horizontal line
+doc.setDrawColor(200, 200, 200);
+doc.line(margin, y, doc.internal.pageSize.width - margin, y);
+y += 20;
 
-        // Add a horizontal line
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, y, doc.internal.pageSize.width - margin, y);
-        y += 20;
+// Process all textareas
+const sections = [
+{ label: 'Problem', id: 'problem', subtitle: 'List your customers top 3 problems' },
+{ label: 'Existing Alternatives', id: 'alternatives', subtitle: 'List how these problems are solved today' },
+{ label: 'Solution', id: 'solution', subtitle: 'Outline possible solution for each problem' },
+{ label: 'Key Metrics', id: 'keyMetrics', subtitle: 'List key numbers telling how your business is performing' },
+{ label: 'Unique Value Proposition', id: 'uniqueValue', subtitle: 'Single, clear & compelling message that turns a visitor into a prospect' },
+{ label: 'High Level Concept', id: 'concept', subtitle: 'List your X for Y analogy (e.g. YouTube = Flickr for videos)' },
+{ label: 'Unfair Advantage', id: 'unfairAdvantage', subtitle: 'Something that can\'t be easily copied or bought' },
+{ label: 'Channels', id: 'channels', subtitle: 'List your path to customers' },
+{ label: 'Customer Segments', id: 'customerSegments', subtitle: 'List your target customers and users' },
+{ label: 'Early Adopters', id: 'earlyAdopters', subtitle: 'List characteristics of your ideal customer' },
+{ label: 'Cost Structure', id: 'costStructure', subtitle: 'List your fixed and variable costs' },
+{ label: 'Revenue Streams', id: 'revenueStreams', subtitle: 'List your sources of revenue' }
+];
 
-        // Process all textareas
-        const sections = [
-            { label: 'Problem', id: 'problem', subtitle: 'List your customers top 3 problems' },
-            { label: 'Existing Alternatives', id: 'alternatives', subtitle: 'List how these problems are solved today' },
-            { label: 'Solution', id: 'solution', subtitle: 'Outline possible solution for each problem' },
-            { label: 'Key Metrics', id: 'keyMetrics', subtitle: 'List key numbers telling how your business is performing' },
-            { label: 'Unique Value Proposition', id: 'uniqueValue', subtitle: 'Single, clear & compelling message that turns a visitor into a prospect' },
-            { label: 'High Level Concept', id: 'concept', subtitle: 'List your X for Y analogy (e.g. YouTube = Flickr for videos)' },
-            { label: 'Unfair Advantage', id: 'unfairAdvantage', subtitle: 'Something that can\'t be easily copied or bought' },
-            { label: 'Channels', id: 'channels', subtitle: 'List your path to customers' },
-            { label: 'Customer Segments', id: 'customerSegments', subtitle: 'List your target customers and users' },
-            { label: 'Early Adopters', id: 'earlyAdopters', subtitle: 'List characteristics of your ideal customer' },
-            { label: 'Cost Structure', id: 'costStructure', subtitle: 'List your fixed and variable costs' },
-            { label: 'Revenue Streams', id: 'revenueStreams', subtitle: 'List your sources of revenue' }
-        ];
+sections.forEach(section => {
+const element = $(`#${section.id}`);
+if (element && element.value.trim()) {
+// Check if we need a new page
+if (y > doc.internal.pageSize.height - (margin + 100)) {
+doc.addPage();
+y = margin;
+}
 
-        sections.forEach(section => {
-            const element = $(`#${section.id}`);
-            if (element && element.value.trim()) {
-                // Check if we need a new page
-                if (y > doc.internal.pageSize.height - (margin + 100)) {
-                    doc.addPage();
-                    y = margin;
-                }
+// Add section heading
+doc.setFontSize(14);
+doc.setFont('helvetica', 'bold');
+doc.text(section.label, margin, y);
+y += 20;
 
-                // Add section heading
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.text(section.label, margin, y);
-                y += 20;
+// Add subtitle
+doc.setFontSize(10);
+doc.setFont('helvetica', 'italic');
+doc.setTextColor(100, 100, 100);
+doc.text(section.subtitle, margin, y);
+doc.setTextColor(0, 0, 0);
+y += 20;
 
-                // Add subtitle
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'italic');
-                doc.setTextColor(100, 100, 100);
-                doc.text(section.subtitle, margin, y);
-                doc.setTextColor(0, 0, 0);
-                y += 20;
+// Add section content with wrapping
+doc.setFont('helvetica', 'normal');
+doc.setFontSize(11);
 
-                // Add section content with wrapping
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(11);
+const textLines = doc.splitTextToSize(element.value, doc.internal.pageSize.width - (margin * 2));
+doc.text(textLines, margin, y);
+y += (textLines.length * 15) + 25;
+}
+});
 
-                const textLines = doc.splitTextToSize(element.value, doc.internal.pageSize.width - (margin * 2));
-                doc.text(textLines, margin, y);
-                y += (textLines.length * 15) + 25;
-            }
-        });
+// Add footer
+const pageCount = doc.internal.getNumberOfPages();
+for (let i = 1; i <= pageCount; i++) {
+doc.setPage(i);
+doc.setFontSize(10);
+doc.setTextColor(150, 150, 150);
+doc.text('Lean Canvas - Page ' + i + ' of ' + pageCount, margin, doc.internal.pageSize.height - 20);
+}
 
-        // Add footer
-        const pageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(10);
-            doc.setTextColor(150, 150, 150);
-            doc.text('Lean Canvas - Page ' + i + ' of ' + pageCount, margin, doc.internal.pageSize.height - 20);
-        }
+// Save the PDF
+doc.save('lean-canvas.pdf');
 
-        // Save the PDF
-        doc.save('lean-canvas.pdf');
-
-        // Show the CTA after PDF download
-        showExpertReviewCTA();
-    }
+// Show the CTA after PDF download
+showExpertReviewCTA();
+}
 };
 
 // Function to show the CTA
 function showExpertReviewCTA() {
-    // Check if CTA already exists to avoid duplicates
-    if (document.getElementById('expertReviewCTA')) {
-        return;
-    }
+// Check if CTA already exists to avoid duplicates
+if (document.getElementById('expertReviewCTA')) {
+return;
+}
 
-    // Create the CTA element
-    const ctaElement = document.createElement('div');
-    ctaElement.id = 'expertReviewCTA';
-    ctaElement.style.cssText = `
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        background-color: #6366F1;
-        color: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        max-width: 320px;
-        z-index: 1000;
-        animation: slideIn 0.5s ease-out;
-    `;
+// Create the CTA element
+const ctaElement = document.createElement('div');
+ctaElement.id = 'expertReviewCTA';
+ctaElement.style.cssText = `
+position: fixed;
+bottom: 30px;
+right: 30px;
+background-color: #6366F1;
+color: white;
+padding: 20px;
+border-radius: 8px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+max-width: 320px;
+z-index: 1000;
+animation: slideIn 0.5s ease-out;
+`;
 
-    // Add the content
-    ctaElement.innerHTML = `
-        <div style="display: flex; align-items: start;">
-            <div>
-                <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Want to improve your business model?</h3>
-                <p style="margin: 0 0 15px 0; font-size: 14px;">Get expert feedback on your Lean Canvas from a startup coach. Identify gaps and improve your business model.</p>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: bold; font-size: 15px;">Starting at $49!</span>
-                    <button id="expertReviewBtn" style="display: inline-block; background-color: white; color: #6366F1; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; border: none; cursor: pointer;">Get Expert Review</button>
-                </div>
-            </div>
-            <button onclick="this.parentNode.parentNode.remove()" style="background: none; border: none; color: white; margin-left: 10px; cursor: pointer; font-size: 16px;">×</button>
-        </div>
-    `;
+// Add the content
+ctaElement.innerHTML = `
+<div style="display: flex; align-items: start;">
+<div>
+<h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">Want to improve your business model?</h3>
+<p style="margin: 0 0 15px 0; font-size: 14px;">Get expert feedback on your Lean Canvas from a startup coach. Identify gaps and improve your business model.</p>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<span style="font-weight: bold; font-size: 15px;">Starting at $49!</span>
+<button id="expertReviewBtn" style="display: inline-block; background-color: white; color: #6366F1; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; border: none; cursor: pointer;">Get Expert Review</button>
+</div>
+</div>
+<button onclick="this.parentNode.parentNode.remove()" style="background: none; border: none; color: white; margin-left: 10px; cursor: pointer; font-size: 16px;">×</button>
+</div>
+`;
 
-    // Append to body
-    document.body.appendChild(ctaElement);
+// Append to body
+document.body.appendChild(ctaElement);
 
-    // Add event listener for the button with smooth scrolling
-    document.getElementById('expertReviewBtn').addEventListener('click', function(e) {
-        e.preventDefault();
+// Add event listener for the button with smooth scrolling
+document.getElementById('expertReviewBtn').addEventListener('click', function(e) {
+e.preventDefault();
 
-        // Find the expert services section
-        const expertSection = document.getElementById('expertservices');
-        if (expertSection) {
-            // Smooth scroll to the section
-            expertSection.scrollIntoView({ behavior: 'smooth' });
+// Find the expert services section
+const expertSection = document.getElementById('expertservices');
+if (expertSection) {
+// Smooth scroll to the section
+expertSection.scrollIntoView({ behavior: 'smooth' });
 
-            // Highlight the section briefly (optional)
-            expertSection.style.transition = 'background-color 0.5s';
-            expertSection.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
-            setTimeout(() => {
-                expertSection.style.backgroundColor = '';
-            }, 1500);
-        }
+// Highlight the section briefly (optional)
+expertSection.style.transition = 'background-color 0.5s';
+expertSection.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
+setTimeout(() => {
+expertSection.style.backgroundColor = '';
+}, 1500);
+}
 
-        // Remove the CTA after clicking
-        document.getElementById('expertReviewCTA').remove();
-    });
+// Remove the CTA after clicking
+document.getElementById('expertReviewCTA').remove();
+});
 
-    // Auto-remove after 15 seconds
-    setTimeout(() => {
-        const cta = document.getElementById('expertReviewCTA');
-        if (cta) {
-            cta.style.animation = 'fadeOut 0.5s ease-in forwards';
-            setTimeout(() => cta.remove(), 500);
-        }
-    }, 15000);
+// Auto-remove after 15 seconds
+setTimeout(() => {
+const cta = document.getElementById('expertReviewCTA');
+if (cta) {
+cta.style.animation = 'fadeOut 0.5s ease-in forwards';
+setTimeout(() => cta.remove(), 500);
+}
+}, 15000);
 }
 
 const applyCustomColor = e => {
-    // Check if user has signed up before allowing customization
-    if (!isUserSignedUp()) {
-        e.preventDefault();
-        showSignupOverlay();
-        applyBlur(true);
-        return;
-    }
-    
-    if (!e) return;
-    e.preventDefault();
-    applyTheme($('#customColorInput').value);
+if (!e) return;
+e.preventDefault();
+applyTheme($('#customColorInput').value);
 };
 
 const restoreTheme = _ => {
-    const c = localStorage.getItem('themeColor') || '#FFFFFF';
-    applyTheme(c);
-    const i = $('#customColorInput');
-    if (i) i.value = c;
+const c = localStorage.getItem('themeColor') || '#FFFFFF';
+applyTheme(c);
+const i = $('#customColorInput');
+if (i) i.value = c;
 };
 
 document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
